@@ -1,0 +1,158 @@
+# Generated 2023-09-20 from:
+# /gpfsdswork/projects/rech/jvn/uul35qx/hugo/rsync/BMOHA/hparams/cnn/inference_whisper_decider.yaml
+# yamllint disable
+# ################################
+# Model: Whisper (Encoder-Decoder) + NLL
+# Augmentation: TimeDomainSpecAugment
+# Authors: Adel Moumen 2022, Titouan Parcollet 2022
+# ################################
+
+# Seed needs to be set at top of yaml, before objects with parameters are made
+seed: 1986
+__set_seed: !apply:torch.manual_seed [1986]
+output_folder: BMOHA/results
+wer_file: BMOHA/results/werDecider.txt
+save_folder: BMOHA/results/save
+
+# URL for the biggest Fairseq english whisper model.
+whisperTiny_hub: openai/whisper-tiny
+whisperTiny_folder: BMOHA/results/save/whisperTiny_checkpoint
+whisperMedium_hub: openai/whisper-small
+whisperMedium_folder: BMOHA/results/save/whisperMedium_checkpoint
+language: english
+
+# Normalize the english inputs with
+# the same normalization done in the paper
+normalized_transcripts: true
+test_only: true # Set it to True if you only want to  do the evaluation
+
+# Data files
+data_folder: /scratch1/data/raw_data/LibriSpeech  # e,g./path/to/LibriSpeech
+train_splits: [train-clean-100, train-clean-360, train-other-500]
+dev_splits: [dev-clean, dev-other]
+test_splits: [test-clean, test-other]
+skip_prep: false
+train_csv: BMOHA/results/save/train-WER.csv
+valid_csv: BMOHA/results/save/dev-WER.csv
+test_csv: BMOHA/results/save/test-WER.csv
+
+ckpt_interval_minutes: 30 # save checkpoint every N min
+
+# Training parameters
+number_of_epochs: 1
+lr_whisper: 0.00003
+sorting: ascending
+auto_mix_prec: false
+sample_rate: 16000
+
+# With data_parallel batch_size is split into N jobs
+# With DDP batch_size is multiplied by N jobs
+batch_size: 1
+test_batch_size: 1 #8
+
+# These values are only used for the searchers.
+# They needs to be hardcoded and should not be changed with Whisper.
+# They are used as part of the searching process.
+# The bos token of the searcher will be timestamp_index
+# and will be concatenated with the bos, language and task tokens.
+timestamp_index: 50363
+eos_index: 50257
+bos_index: 50258
+
+# Decoding parameters
+min_decode_ratio: 0.0
+max_decode_ratio: 1.0
+test_beam_size: 8
+
+# Model parameters
+freeze_whisper: false
+
+
+train_loader_kwargs:
+  batch_size: 1
+
+valid_loader_kwargs:
+  batch_size: 1
+
+test_loader_kwargs:
+  batch_size: 1
+
+
+#
+# Functions and classes
+#
+epoch_counter: &id005 !new:speechbrain.utils.epoch_loop.EpochCounter
+
+#train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
+#    save_file: !ref <train_log>
+
+  limit: 1
+
+whisperTiny: &id001 !new:speechbrain.lobes.models.huggingface_whisper.HuggingFaceWhisper
+  source: openai/whisper-tiny
+  freeze: false
+  save_path: BMOHA/results/save/whisper_checkpoint
+  encoder_only: false
+
+whisperMedium: &id002 !new:speechbrain.lobes.models.huggingface_whisper.HuggingFaceWhisper
+  source: openai/whisper-small
+  freeze: false
+  save_path: BMOHA/results/save/whisper_checkpoint
+  encoder_only: false
+
+decider: &id003 !new:convolutionWhisperSpace.ResNet1DPonderate
+
+  n_blocks: 4
+  channels: [128, 128, 256, 256]
+  input_channels: 768
+  nbCoef: 13
+
+decider_path: 
+  /gpfswork/rech/jvn/uul35qx/hugo/rsync/results/train_whisper/1986/save/CNNSimpler/bestE2/resnet.ckpt
+
+
+log_softmax: !new:speechbrain.nnet.activations.Softmax
+  apply_log: true
+
+nll_loss: !name:speechbrain.nnet.losses.nll_loss
+
+modules:
+  whisperTiny: *id001
+  whisperMedium: *id002
+  decider: *id003
+whisper_opt_class: !name:torch.optim.AdamW
+  lr: 0.00003
+  weight_decay: 0.01
+
+test_beam_searcher_tiny: !new:speechbrain.decoders.seq2seq.S2SWhisperBeamSearch
+  module: [*id001]
+  bos_index: 50363
+  eos_index: 50257
+  min_decode_ratio: 0.0
+  max_decode_ratio: 1.0
+  beam_size: 8
+
+test_beam_searcher_medium: !new:speechbrain.decoders.seq2seq.S2SWhisperBeamSearch
+  module: [*id002]
+  bos_index: 50363
+  eos_index: 50257
+  min_decode_ratio: 0.0
+  max_decode_ratio: 1.0
+  beam_size: 8
+
+lr_annealing_whisper: &id004 !new:speechbrain.nnet.schedulers.NewBobScheduler
+  initial_value: 0.00003
+  improvement_threshold: 0.0025
+  annealing_factor: 0.9
+  patient: 0
+
+checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
+  checkpoints_dir: BMOHA/results/save
+  recoverables:
+    whisper: *id001
+    scheduler_whisper: *id004
+    counter: *id005
+error_rate_computer: !name:speechbrain.utils.metric_stats.ErrorRateStats
+
+cer_computer: !name:speechbrain.utils.metric_stats.ErrorRateStats
+  split_tokens: true

@@ -1,0 +1,127 @@
+# ################################
+# Model: Speaker identification with ECAPA
+# Authors: Hwidong Na & Mirco Ravanelli
+# ################################
+
+output_folder: !ref results/train_cnn
+csv_folder: BMOHA/results/save
+whisper_path: !ref <output_folder>/save
+lr: 0.0001
+l2: 0.0001
+train_log: !ref <output_folder>/save/cnn_log.txt
+
+# Normalize the english inputs with
+# the same normalization done in the paper
+normalized_transcripts: True
+test_only: False # Set it to True if you only want to  do the evaluation
+
+# Data files
+data_folder: /gpfsdswork/dataset/CommonVoice/cv-corpus-7.0-2021-07-21/en  # e,g./path/to/LibriSpeech
+train_tsv_file: !ref <data_folder>/train.tsv
+dev_tsv_file: !ref <data_folder>/dev.tsv  
+test_tsv_file: !ref <data_folder>/test.tsv
+accented_letters: True
+skip_prep: False
+train_csv: !ref <csv_folder>/train-WER.csv
+
+valid_csv: !ref <csv_folder>/dev-WER.csv 
+
+test_csv: !ref <csv_folder>/test-WER.csv 
+   
+ckpt_interval_minutes: 30 # save checkpoint every N min
+
+# Training parameters
+number_of_epochs: 10
+batch_size: 64
+base_lr: 0.00000001
+max_lr: !ref <lr>
+step_size: 65000
+sample_rate: 16000
+sentence_len: 3.0 # seconds
+shuffle: True
+random_chunk: True
+sorting: ascending
+auto_mix_prec: False
+
+# Feature parameters
+n_mels: 80
+left_frames: 0
+right_frames: 0
+deltas: False
+
+
+out_n_neurons: 1 
+
+
+dataloader_options:
+    batch_size: !ref <batch_size>
+    shuffle: !ref <shuffle>
+    num_workers: 1
+    
+train_loader_kwargs:
+    batch_size: !ref <batch_size>
+
+valid_loader_kwargs:
+    batch_size: !ref <batch_size>
+    drop_last: True
+
+test_loader_kwargs:
+    batch_size: !ref <batch_size>
+
+# Functions
+whisper_hub: openai/whisper-tiny
+freeze_whisper: True
+freeze_encoder: True
+
+whisper: !new:speechbrain.lobes.models.huggingface_whisper.HuggingFaceWhisper
+    source: !ref <whisper_hub>
+    freeze: !ref <freeze_whisper>
+    freeze_encoder: !ref <freeze_encoder>
+    save_path: !ref <whisper_path>/whisper_checkpoint
+    encoder_only: False
+
+language: english    
+timestamp_index: 50363      
+eos_index: 50257  
+bos_index: 50258 
+
+resnet: !new:convolution_whisper_space.ResNet1DPonderate  
+    n_blocks: 3 
+    channels: [256,256,256] 
+    input_channels: 512
+    nbCoef: 13
+
+
+epoch_counter: !new:speechbrain.utils.epoch_loop.EpochCounter
+    limit: !ref <number_of_epochs>
+
+
+modules:
+    resnet: !ref <resnet>
+    whisper: !ref <whisper>
+
+compute_cost: !name:speechbrain.nnet.losses.bce_loss
+
+opt_class: !name:torch.optim.Adam
+    lr: !ref <lr>
+    weight_decay: !ref <l2>
+
+lr_annealing: !new:speechbrain.nnet.schedulers.CyclicLRScheduler
+    base_lr: !ref <base_lr>
+    max_lr: !ref <max_lr>
+    step_size: !ref <step_size>
+
+# Logging + checkpoints
+train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
+    save_file: !ref <train_log>
+
+error_stats: !name:speechbrain.utils.metric_stats.MetricStats
+    metric: !name:speechbrain.nnet.losses.classification_error
+        reduction: batch
+
+checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
+    checkpoints_dir: !ref <output_folder>
+    recoverables:
+        resnet: !ref <resnet>
+        scheduler_whisper: !ref <lr_annealing>
+        counter: !ref <epoch_counter> 
