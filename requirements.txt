@@ -1,0 +1,3 @@
+speechbrain
+torchaudio
+thop
