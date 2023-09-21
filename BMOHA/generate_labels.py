@@ -33,18 +33,18 @@ def add_choice(df):
     df['choice'] = choice.astype(int).tolist()
     return df
 
-df_test = pd.read_csv('./results/save/test.csv')
-df_dev = pd.read_csv('./results/save/dev.csv')
-df_train = pd.read_csv('./results/save/train.csv')
+df_test = pd.read_csv('BMOHA/results/save/test.csv')
+df_dev = pd.read_csv('BMOHA/results/save/dev.csv')
+df_train = pd.read_csv('BMOHA/results/save/train.csv')
 
-wer_tiny_train,id_tiny_train = werFile2np('./results/inferenceTiny/train_wer.txt')
-wer_small_train,id_small_train = werFile2np('./results/inferenceSmall/train_wer.txt')
+wer_tiny_train,id_tiny_train = werFile2np('BMOHA/results/inferenceTiny/train_wer.txt')
+wer_small_train,id_small_train = werFile2np('BMOHA/results/inferenceSmall/train_wer.txt')
 
-wer_tiny_dev,id_tiny_dev = werFile2np('./results/inferencesTiny/dev_wer.txt') 
-wer_small_dev,id_small_dev = werFile2np('./results/inferenceSmall/dev_wer.txt') 
+wer_tiny_dev,id_tiny_dev = werFile2np('BMOHA/results/inferencesTiny/dev_wer.txt') 
+wer_small_dev,id_small_dev = werFile2np('BMOHA/results/inferenceSmall/dev_wer.txt') 
 
-wer_tiny_test,id_tiny_test = werFile2np('./results/inferenceTiny/test_wer.txt') 
-wer_small_test,id_small_test = werFile2np('./results/inferenceSmall/test_wer.txt') 
+wer_tiny_test,id_tiny_test = werFile2np('BMOHA/results/inferenceTiny/test_wer.txt') 
+wer_small_test,id_small_test = werFile2np('BMOHA/results/inferenceSmall/test_wer.txt') 
 
 
 train_wer = pd.merge(pd.DataFrame({'werTiny': wer_tiny_train, 'ID': id_tiny_train}),pd.DataFrame({'werSmall': wer_small_train, 'ID': id_small_train}),on='ID')
@@ -59,6 +59,6 @@ train_set = add_choice(train_set)
 dev_set = add_choice(dev_set)
 test_set = add_choice(test_set)
 
-train_set.to_csv('./results/save/train-WER.csv')
-dev_set.to_csv('./results/save/dev-WER.csv')
-test_set.to_csv('./results/save/test-WER.csv')
+train_set.to_csv('BMOHA/results/save/train-WER.csv')
+dev_set.to_csv('BMOHA/results/save/dev-WER.csv')
+test_set.to_csv('BMOHA/results/save/test-WER.csv')
