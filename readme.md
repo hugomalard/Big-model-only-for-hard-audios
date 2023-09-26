@@ -4,7 +4,8 @@ Here's the repository of [*Big model only for hard audios*](https://arxiv.org/ab
 It contains all the files to reproduce our decider training and evaluate it, as well as our best model. 
 
 Given an audio, our method first runs the encoder of Whisper small to extract representations. Then the decider module is applied to choose wheter to continue the inference with Whisper Small or to restart using Whisper Tiny if the audio is simple enough.
-<img src="BMOHA/doc/pipeline.JPG" width="200" height="200">
+
+<img src="BMOHA/doc/pipeline.JPG" width="450" height="300">
 
 ### Extract WERs of Whisper Small and Whisper Tiny 
 First change the different paths needed (for Whispers models and CommonVoice datasets), then run:
