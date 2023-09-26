@@ -9,12 +9,23 @@ Given an audio, our method first runs the encoder of Whisper small to extract re
 	<img src="BMOHA/doc/pipeline.JPG" width="400" height="300">
 </p>
 
+
+### Installation
+
+```
+git clone https://github.com/hugomalard/Big-model-only-for-hard-audios.git 
+cd Big-model-only-for-hard-audios
+
+# creating a conda environment
+conda create -n BMOHA python=3.8
+conda activate BMOHA
+
+pip install -r requirements.txt
+```
+
 ### Extract WERs of Whisper Small and Whisper Tiny 
 First change the different paths needed (for Whispers models and CommonVoice datasets), then run:
 ```
-git clone https://github.com/hugomalard/Big-model-only-for-hard-audios.git
-cd Big-model-only-for-hard-audios
-
 inferences_whisper.sh
 ```
 
